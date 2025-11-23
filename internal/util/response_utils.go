@@ -5,21 +5,61 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/mbilarusdev/quiz/internal/common"
 	"github.com/mbilarusdev/quiz/internal/model"
+	"go.uber.org/zap"
 )
 
-func SendError(w http.ResponseWriter, errorMsg string, statusCode int) {
-	responseError := model.ResError{Error: errorMsg, StatusCode: statusCode}
-	fmt.Printf("%s", responseError.Error)
+func SendError(
+	params model.SendError,
+) {
+	responseError := model.ResError{Error: params.ErrorMsg, StatusCode: params.StatusCode}
+	common.L.Error(
+		fmt.Sprintf("Handler '%v' returns error", params.HandlerName),
+		zap.String("Path", params.R.URL.Path),
+		zap.String("Method", params.R.Method),
+		zap.String("ErrorMsg", params.ErrorMsg),
+		zap.String("Error", params.Error.Error()),
+		zap.Int("StatusCode", params.StatusCode),
+	)
 	jsonErr, err := json.Marshal(responseError)
 	if err != nil {
-		fmt.Printf("Error when marshal error response\n")
+		common.L.Fatal("json.Marshal failed in util.SendError")
 	}
-	w.WriteHeader(statusCode)
-	w.Write(jsonErr)
+	params.W.WriteHeader(params.StatusCode)
+	params.W.Write(jsonErr)
 }
 
-func SendSuccess(w http.ResponseWriter, data []byte, statusCode int) {
-	w.WriteHeader(statusCode)
-	w.Write(data)
+func SendSuccess(
+	params model.SendSuccess,
+) {
+	common.L.Info(
+		fmt.Sprintf("Handler '%v' returns success", params.HandlerName),
+		zap.String("Path", params.R.URL.Path),
+		zap.String("Method", params.R.Method),
+		zap.String("Result", params.ResultMsg),
+		zap.Int("StatusCode", params.StatusCode),
+	)
+	params.W.WriteHeader(params.StatusCode)
+	params.W.Write(params.Bytes)
+}
+
+func SendFatal(
+	params model.SendFatal,
+) {
+	statusCode := http.StatusInternalServerError
+	responseError := model.ResError{Error: "Panic occured on server side", StatusCode: statusCode}
+	common.L.Error(
+		fmt.Sprintf("Handler '%v' occured with panic", params.HandlerName),
+		zap.String("Path", params.R.URL.Path),
+		zap.String("Method", params.R.Method),
+		zap.Any("Panic", params.Panic),
+		zap.Int("StatusCode", statusCode),
+	)
+	jsonErr, err := json.Marshal(responseError)
+	if err != nil {
+		common.L.Fatal("json.Marshal failed in util.SendFatal")
+	}
+	params.W.WriteHeader(statusCode)
+	params.W.Write(jsonErr)
 }

@@ -29,7 +29,7 @@ func (config *QuizConfig) parse() {
 	if err != nil {
 		log.Fatal("Ошибка загрузки .env файла:", err)
 	}
-	config.PostgresDsn = parseVar("POSTGRES")
+	config.PostgresDsn = parseVar("GOOSE_DBSTRING")
 	config.Addr = parseVar("ADDR")
 }
 

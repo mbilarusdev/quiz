@@ -47,129 +47,328 @@ func (res *QuestionHandler) Create(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
+	op := "handler.QuestionHandler.Create"
+	defer func() {
+		if p := recover(); p != nil {
+			util.SendFatal(
+				model.SendFatal{
+					W:           w,
+					R:           r,
+					HandlerName: op,
+					Panic:       p,
+				},
+			)
+		}
+	}()
 	bodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
-		util.SendError(w, "Failed read body bytes\n", http.StatusBadRequest)
-
+		util.SendError(
+			model.SendError{
+				W:           w,
+				R:           r,
+				HandlerName: op,
+				ErrorMsg:    "Failed to read body bytes",
+				Error:       err,
+				StatusCode:  http.StatusBadRequest,
+			},
+		)
 		return
 	}
 	question := &model.Question{}
 	err = json.Unmarshal(bodyBytes, question)
 	if err != nil {
-		util.SendError(w, "Failed unmarshal bytes to question\n", http.StatusBadRequest)
+		util.SendError(
+			model.SendError{
+				W:           w,
+				R:           r,
+				HandlerName: op,
+				ErrorMsg:    "Failed unmarshal bytes to 'Question' model",
+				Error:       err,
+				StatusCode:  http.StatusBadRequest,
+			},
+		)
 		return
 	}
 	newQuestion, err := res.QuestionSrv.Create(question)
 	if err != nil {
 		if _, ok := err.(*service_errors.DuplicateError); ok {
 			util.SendError(
-				w,
-				fmt.Sprintf(
-					"Failed to create question with id=%v, but already exist\n",
-					question.ID,
-				),
-				http.StatusUnprocessableEntity,
+				model.SendError{
+					W:           w,
+					R:           r,
+					HandlerName: op,
+					ErrorMsg: fmt.Sprintf(
+						"Failed to create question, but 'Question' with id=%v already exist",
+						question.ID,
+					),
+					Error:      err,
+					StatusCode: http.StatusUnprocessableEntity,
+				},
 			)
 		} else {
-			util.SendError(w, "Failed to create question\n", http.StatusUnprocessableEntity)
+			util.SendError(
+				model.SendError{
+					W:           w,
+					R:           r,
+					HandlerName: op,
+					ErrorMsg:    "Failed to create question, some error occured",
+
+					Error:      err,
+					StatusCode: http.StatusUnprocessableEntity,
+				},
+			)
 		}
 		return
 	}
 	jsonQuestion, err := json.Marshal(newQuestion)
 	if err != nil {
-		util.SendError(w, "Failed to marshal question response\n", http.StatusInternalServerError)
+		util.SendError(
+			model.SendError{
+				W:           w,
+				R:           r,
+				HandlerName: op,
+				ErrorMsg:    "Failed to marshal response with 'Question'",
+				Error:       err,
+				StatusCode:  http.StatusUnprocessableEntity,
+			},
+		)
 		return
 	}
 
-	fmt.Printf("Question with id=%vcreated succesfully\n", newQuestion.ID)
-	util.SendSuccess(w, jsonQuestion, http.StatusCreated)
+	util.SendSuccess(model.SendSuccess{
+		W:           w,
+		R:           r,
+		HandlerName: op,
+		Bytes:       jsonQuestion,
+		ResultMsg: fmt.Sprintf(
+			"'Question' with id=%v created succesfully",
+			newQuestion.ID,
+		),
+		StatusCode: http.StatusCreated,
+	})
 }
 
 func (res *QuestionHandler) FindOneDetailed(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
+	op := "handler.QuestionHandler.FindOneDetailed"
+	defer func() {
+		if p := recover(); p != nil {
+			util.SendFatal(
+				model.SendFatal{
+					W:           w,
+					R:           r,
+					HandlerName: op,
+					Panic:       p,
+				},
+			)
+		}
+	}()
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		util.SendError(w, "Failed to parse question field id\n", http.StatusBadRequest)
+		util.SendError(
+			model.SendError{
+				W:           w,
+				R:           r,
+				HandlerName: op,
+				ErrorMsg:    "Failed to parse path parameter {id}",
+				Error:       err,
+				StatusCode:  http.StatusBadRequest,
+			},
+		)
 		return
 	}
 	question, err := res.QuestionSrv.FindOneDetailed(id)
 	if err != nil {
 		if _, ok := err.(*service_errors.NotFoundError); ok {
 			util.SendError(
-				w,
-				fmt.Sprintf("Question with id=%v not found\n", id),
-				http.StatusNotFound,
+				model.SendError{
+					W:           w,
+					R:           r,
+					HandlerName: op,
+					ErrorMsg: fmt.Sprintf(
+						"'Question' with id=%v not found",
+						id,
+					),
+					Error:      err,
+					StatusCode: http.StatusUnprocessableEntity,
+				},
 			)
 		} else {
 			util.SendError(
-				w,
-				fmt.Sprintf("Failed to find question with id=%v and his answers\n", id),
-				http.StatusUnprocessableEntity,
+				model.SendError{
+					W:           w,
+					R:           r,
+					HandlerName: op,
+					ErrorMsg: fmt.Sprintf(
+						"Failed to find 'Question' with id=%v, some error occured",
+						id,
+					),
+					Error:      err,
+					StatusCode: http.StatusUnprocessableEntity,
+				},
 			)
 		}
 		return
 	}
 	jsonQuestion, err := json.Marshal(question)
 	if err != nil {
-		util.SendError(w, "Failed to marshal question response\n", http.StatusInternalServerError)
+		util.SendError(
+			model.SendError{
+				W:           w,
+				R:           r,
+				HandlerName: op,
+				ErrorMsg:    "Failed to marshal response with 'Question'",
+				Error:       err,
+				StatusCode:  http.StatusUnprocessableEntity,
+			},
+		)
 		return
 	}
 
-	fmt.Printf("Question with id=%v and his answers finded successfully\n", id)
-	util.SendSuccess(w, jsonQuestion, http.StatusOK)
+	util.SendSuccess(model.SendSuccess{
+		W:           w,
+		R:           r,
+		HandlerName: op,
+		Bytes:       jsonQuestion,
+		ResultMsg: fmt.Sprintf(
+			"'Question' with id=%v and his answers finded succesfully",
+			id,
+		),
+		StatusCode: http.StatusOK,
+	})
 }
 
 func (res *QuestionHandler) FindAll(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-
+	op := "handler.QuestionHandler.FindAll"
+	defer func() {
+		if p := recover(); p != nil {
+			util.SendFatal(
+				model.SendFatal{
+					W:           w,
+					R:           r,
+					HandlerName: op,
+					Panic:       p,
+				},
+			)
+		}
+	}()
 	questions, err := res.QuestionSrv.FindAll()
 	if err != nil {
 		util.SendError(
-			w,
-			"Failed to find all answers\n",
-			http.StatusNotFound,
+			model.SendError{
+				W:           w,
+				R:           r,
+				HandlerName: op,
+				ErrorMsg:    "Failed to find all questions, some error occured",
+				Error:       err,
+				StatusCode:  http.StatusUnprocessableEntity,
+			},
 		)
 		return
 	}
 	jsonQuestions, err := json.Marshal(questions)
 	if err != nil {
 		util.SendError(
-			w,
-			"Failed to marshal find all questions response\n",
-			http.StatusInternalServerError,
+			model.SendError{
+				W:           w,
+				R:           r,
+				HandlerName: op,
+				ErrorMsg:    "Failed to marshal response with list of 'Question'",
+				Error:       err,
+				StatusCode:  http.StatusUnprocessableEntity,
+			},
 		)
 		return
 	}
 
-	fmt.Printf("Find all questions successfully\n")
-	util.SendSuccess(w, jsonQuestions, http.StatusOK)
+	util.SendSuccess(model.SendSuccess{
+		W:           w,
+		R:           r,
+		HandlerName: op,
+		Bytes:       jsonQuestions,
+		ResultMsg:   "List of 'Question' finded succesfully",
+		StatusCode:  http.StatusOK,
+	})
 }
 
 func (res *QuestionHandler) Delete(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
+	op := "handler.QuestionHandler.Delete"
+	defer func() {
+		if p := recover(); p != nil {
+			util.SendFatal(
+				model.SendFatal{
+					W:           w,
+					R:           r,
+					HandlerName: op,
+					Panic:       p,
+				},
+			)
+		}
+	}()
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		util.SendError(w, "Failed to parse question field id\n", http.StatusBadRequest)
+		util.SendError(
+			model.SendError{
+				W:           w,
+				R:           r,
+				HandlerName: op,
+				ErrorMsg:    "Failed to parse path parameter {id}",
+				Error:       err,
+				StatusCode:  http.StatusBadRequest,
+			},
+		)
 		return
 	}
-	_, err = res.QuestionSrv.Delete(id)
+	deleted, err := res.QuestionSrv.Delete(id)
 	if err != nil {
 		util.SendError(
-			w,
-			fmt.Sprintf("Failed to delete question with id=%v\n", id),
-			http.StatusNotFound,
+			model.SendError{
+				W:           w,
+				R:           r,
+				HandlerName: op,
+				ErrorMsg: fmt.Sprintf(
+					"Failed to delete 'Question' with id=%v, some error occured",
+					id,
+				),
+				Error:      err,
+				StatusCode: http.StatusUnprocessableEntity,
+			},
+		)
+		return
+	}
+	if !deleted {
+		util.SendError(
+			model.SendError{
+				W:           w,
+				R:           r,
+				HandlerName: op,
+				ErrorMsg:    fmt.Sprintf("'Question' with id=%v not found!", id),
+				Error:       err,
+				StatusCode:  http.StatusNotFound,
+			},
 		)
 		return
 	}
 
-	fmt.Printf("Question with id=%v deleted successfully\n", id)
-	util.SendSuccess(w, make([]byte, 0), http.StatusNoContent)
+	util.SendSuccess(model.SendSuccess{
+		W:           w,
+		R:           r,
+		HandlerName: op,
+		Bytes:       make([]byte, 0),
+		ResultMsg: fmt.Sprintf(
+			"'Question' with id=%v deleted succesfully",
+			id,
+		),
+		StatusCode: http.StatusNoContent,
+	})
 }

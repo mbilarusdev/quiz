@@ -1,6 +1,7 @@
 package app
 
 import (
+	"database/sql"
 	"fmt"
 	"net/http"
 	"time"
@@ -20,21 +21,50 @@ type App interface {
 
 type QuizApp struct{}
 
+func waitForDBReady(connStr string) error {
+	maxRetries := 10
+	retryInterval := 5 * time.Second
+
+	for retries := 0; retries < maxRetries; retries++ {
+		db, err := sql.Open("postgres", connStr)
+		if err != nil {
+			fmt.Printf("Waiting for DB (%d/%d)...\n", retries+1, maxRetries)
+			time.Sleep(retryInterval)
+			continue
+		}
+		defer db.Close()
+
+		err = db.Ping()
+		if err == nil {
+			fmt.Println("Database is ready!")
+			return nil
+		}
+
+		fmt.Printf("Retrying connection (%d/%d)...\n", retries+1, maxRetries)
+		time.Sleep(retryInterval)
+	}
+
+	return fmt.Errorf("Database unavailable after multiple attempts")
+}
+
 func NewQuizApp() *QuizApp {
 	return new(QuizApp)
 }
 
 func (app *QuizApp) Start() {
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Printf("Panic occured: %v\n", r)
-		}
-	}()
+	// Logger
+	fmt.Println("Init logger...")
+	common.InitLogger()
+	defer common.L.Sync()
+
+	// Config
 	fmt.Println("Parsing config...")
 	common.Conf = common.NewQuizConfig()
 	dsn := common.Conf.PostgresDsn
 
+	// Postgres
 	fmt.Println("Connect postgres...")
+	waitForDBReady(dsn)
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		panic(fmt.Sprintf("Can't open postgres connection: %v\n", err))
@@ -78,4 +108,5 @@ func (app *QuizApp) Start() {
 	if err := server.ListenAndServe(); err != nil {
 		panic(fmt.Sprintf("Failed to start server: %v\n", err))
 	}
+
 }
