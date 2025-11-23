@@ -39,7 +39,7 @@ docker exec -it {Container ID} sh
 Находясь внутри оболочки контейнера, перейдите в директорию с файлами миграций и примените их с помощью Goose:
 
 ```bash
-docker exec -it {Container ID} sh
+cd migrations && goose up
 ```
 
 Вы увидите вывод, подтверждающий выполнение миграций.
