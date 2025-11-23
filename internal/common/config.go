@@ -14,6 +14,7 @@ type Config interface {
 }
 
 type QuizConfig struct {
+	Env         string
 	PostgresDsn string
 	Addr        string
 }
@@ -27,9 +28,10 @@ func NewQuizConfig() *QuizConfig {
 func (config *QuizConfig) parse() {
 	err := godotenv.Load(".env")
 	if err != nil {
-		log.Fatal("Ошибка загрузки .env файла:", err)
+		log.Fatal("Error when loading .env file:", err)
 	}
-	config.PostgresDsn = parseVar("GOOSE_DBSTRING")
+
+	config.PostgresDsn = parseVar("POSTGRES")
 	config.Addr = parseVar("ADDR")
 }
 

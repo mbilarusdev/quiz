@@ -8,8 +8,6 @@ services:
     depends_on:
       - quiz-postgres
     environment:
-      ADDR: ${ADDR}
-      POSTGRES: ${POSTGRES}
       GOOSE_DRIVER: ${GOOSE_DRIVER}
       GOOSE_DBSTRING: ${GOOSE_DBSTRING}
       GOOSE_MIGRATION_DIR: ${GOOSE_MIGRATION_DIR}
@@ -21,7 +19,7 @@ services:
     image: postgres
     container_name: quiz-postgres
     ports:
-      - "5432:5432"
+      - "5433:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -29,9 +27,11 @@ services:
     restart: always
     networks:
       - backend
+    volumes:
+      - postgres_data:/var/lib/postgresql
 
 volumes:
-  weather_postgres_data:
+  postgres_data:
 
 networks:
   backend:
