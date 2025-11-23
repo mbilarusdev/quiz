@@ -58,7 +58,7 @@ func SendFatal(
 	)
 	jsonErr, err := json.Marshal(responseError)
 	if err != nil {
-		common.L.Fatal("json.Marshal failed in util.SendFatal")
+		common.L.Error("json.Marshal failed in util.SendFatal")
 	}
 	params.W.WriteHeader(statusCode)
 	params.W.Write(jsonErr)
